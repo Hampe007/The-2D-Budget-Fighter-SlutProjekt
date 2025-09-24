@@ -1,3 +1,4 @@
+// Made by HCS, its entirely free to use aslong as you credit me. If you need: "© 2025 HCS"
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
 using UnityEngine;
 using System.Diagnostics;
