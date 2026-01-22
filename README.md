@@ -1,4 +1,4 @@
-# SlutProjekt
+# The 2D Budget Fighter | SlutProjekt
 **Hampus & Kalle SU23b**
 
 1080p is the required resolution to play!
