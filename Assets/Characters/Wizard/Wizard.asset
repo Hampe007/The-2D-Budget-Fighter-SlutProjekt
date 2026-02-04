@@ -26,6 +26,7 @@ MonoBehaviour:
     a feared combatant in underground street battles, Raizel channels his rage into
     electrifying orbs, striking opponents with searing precision and earning the
     title "Storm Sage."
-  basicAttackDescription: Basic Attack Description Placeholder
-  abilityDescription: Ability Description Placeholder
+  basicAttackDescription: Sends a crackling bolt forward that chains into nearby
+    foes.
+  abilityDescription: Fires a focused lightning bolt that stuns the target on impact.
   fighterPrefab: {fileID: 5251138399461381211, guid: 55797f11487b8a849816cafa58f3cc84, type: 3}

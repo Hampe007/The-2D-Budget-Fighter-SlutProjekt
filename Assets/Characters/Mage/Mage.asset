@@ -18,13 +18,12 @@ MonoBehaviour:
   idleSprite: {fileID: 4723107735738678597, guid: a141fb363b48ba04e9111478ce2d5cc0, type: 3}
   basicAttackSprite: {fileID: -7008412969330441016, guid: 11efd2944d96c1f4885f89e46fb894cd, type: 3}
   abilitySprite: {fileID: -910092549403018386, guid: 11efd2944d96c1f4885f89e46fb894cd, type: 3}
-  lore: Born amidst the volcanic spires of the distant Ember Isles, Sylvara possessed
-    an innate affinity for fire magic. Shunned by villagers fearful of her uncontrollable
-    powers, she traveled from city to city, hiding among the crowded slums. Street
-    combat became her path to acceptance; every match was an opportunity to control
-    and master her fiery gift. Sylvara's blazing fireballs have since become legendary,
-    illuminating the darkest alleys as crowds chant the name of the feared yet revered
-    "Flame Seer."
-  basicAttackDescription: Basic Attack Description Placeholder
-  abilityDescription: Ability Description Placeholder
+  lore: "Born beneath the Ember Isles, Sylvara\u2019s fire answered her heartbeat
+    long before she learned to speak. She escaped the islands to the city\u2019s
+    furnace districts, trading fear for spectacle and honing her craft in the street
+    rings. Each bout is a ritual of control, turning raw flame into deliberate artistry
+    as the crowd chants the name of the Flame Seer."
+  basicAttackDescription: Hurls a quick firebolt that scorches on impact.
+  abilityDescription: Conjures a spiraling blaze that burns the ground and keeps
+    foes at bay.
   fighterPrefab: {fileID: 5251138399461381211, guid: 897db42b462e1304ba1b7313c7216ece, type: 3}

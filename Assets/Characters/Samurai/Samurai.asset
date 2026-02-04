@@ -26,6 +26,7 @@ MonoBehaviour:
     step toward reclaiming his clan\u2019s honor: fans erupt when the arena lights
     cut out and only spectral silhouettes and the whistle of steel announce the arrival
     of the feared yet admired \u201CGhost-Lance.\u201D"
-  basicAttackDescription: Basic Attack Description Placeholder
-  abilityDescription: Ability Description Placeholder
+  basicAttackDescription: Strikes with a precise jab that punishes overextension.
+  abilityDescription: Dashes through foes with a spectral thrust, briefly stunning
+    on hit.
   fighterPrefab: {fileID: 5251138399461381211, guid: fb3d899ebc49a46498be752d97690501, type: 3}

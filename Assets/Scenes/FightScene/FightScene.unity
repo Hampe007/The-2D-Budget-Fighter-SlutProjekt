@@ -1683,6 +1683,9 @@ MonoBehaviour:
   playerWon: 0
   killsThisMatch: 0
   deathsThisMatch: 0
+  returnToMenuOnMatchEnd: 0
+  rematchOnMatchEnd: 0
+  matchEnded: 0
 --- !u!4 &1928705896
 Transform:
   m_ObjectHideFlags: 0

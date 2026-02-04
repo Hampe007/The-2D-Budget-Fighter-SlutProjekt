@@ -11,13 +11,17 @@ public class GameManager : NetworkBehaviour
 {
 	[Header("Match Outcome")]
 	[SerializeField]
-	private bool playerWon = false;
+	private bool playerWon;
 	[SerializeField]
-	private int killsThisMatch = 0;
+	private int killsThisMatch;
 	[SerializeField]
-	private int deathsThisMatch = 0;
+	private int deathsThisMatch;
+	[SerializeField]
+	private bool returnToMenuOnMatchEnd;
+	[SerializeField]
+	private bool rematchOnMatchEnd;
 
-	public bool matchEnded = false;
+	public bool matchEnded;
 	private bool hasSaved = false;
 
 	private void Awake()
@@ -44,10 +48,21 @@ public class GameManager : NetworkBehaviour
 		Debug.Log("[GameManager] Match stats saved:");
 		Debug.Log(stats.ToString());
 
-		if (IsServer)
+		if (IsServer && returnToMenuOnMatchEnd)
 		{
 			Debug.Log("[GameManager] RequestReturnToMenuClientRpc() is trying to be called inside FinalizeMatch()");
-			StartCoroutine(ReturnToMenuRoutine());
+			if (rematchOnMatchEnd)
+			{
+				StartCoroutine(RematchRoutine());
+			}
+			else
+			{
+				StartCoroutine(ReturnToMenuRoutine());
+			}
+		}
+		else if (IsServer)
+		{
+			Debug.Log("[GameManager] Match ended; staying in arena for capture.");
 		}
 	}
 
@@ -67,5 +82,18 @@ public class GameManager : NetworkBehaviour
 
 		// Go back to the main menu locally and alone
 		SceneManager.LoadScene("StartMenu", LoadSceneMode.Single);
+	}
+	private IEnumerator RematchRoutine()
+	{
+		Debug.Log("[GameManager] RematchRoutine() is running");
+
+		yield return new WaitForSeconds(0.25f); // let late RPCs finish
+
+		// Clean up the transport on this machine
+		if (NetworkManager.Singleton.IsListening)
+			NetworkManager.Singleton.Shutdown();
+
+		// Reload the fight scene for an immediate rematch
+		SceneManager.LoadScene("FightScene", LoadSceneMode.Single);
 	}
 }
