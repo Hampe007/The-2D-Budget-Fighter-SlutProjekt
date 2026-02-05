@@ -1,21 +1,7 @@
 # Trailer Plan (Solo Capture)
 
-## Game understanding (from repo scan)
-- **Mode & flow:** StartMenu → Host/Join LAN → CharacterSelect (carousel + detail panel) → FightScene → return to StartMenu on match end. Character selection triggers when both players confirm; fight scene is loaded via Netcode. 
-- **Core loop:** 1v1 match; health + mana; melee and projectile attacks; win/loss saved to local stats; return to StartMenu after death. 
-- **Playable fighters (4):** Mage, Wizard, Samurai, Warrior. 
-- **Moves & standout mechanics:**
-  - **Mage:** fireball ability applies burn damage over time; ranged projectile attack. 
-  - **Wizard:** lightning bolt ability stuns; ranged projectile attack.
-  - **Samurai:** dash pierce ability with afterimage/ghost trail and knockback + stun; melee attacks.
-  - **Warrior:** crit buff ability (temporary crits); melee attacks.
-- **Movement:** walk, jump, dash; facing flips with movement direction. 
-- **UI:** health + mana sliders with flashing low-health; stats display in StartMenu. 
-- **Tools discovered:** in-game debug console toggle on **F10**; no replay/free-cam/training mode found. 
-
 ## Trailer shot list (40s total)
 
-### A) “Safe” plan (no special tools assumed)
 | Time | Shot | Purpose | Recording instructions | Camera/framing | Transition | On-screen text |
 |---|---|---|---|---|---|---|
 | 0:00–0:03 | **Title splash** (StartMenu) | Establish game & tone | Launch StartMenu. Idle for 1s so UI settles. | Full UI, centered. | Fade in from black. | “2D Budget Fighter” |
@@ -35,5 +21,4 @@
 - **Aspect ratio:** 16:9 (ResLock script enforces letterboxing if off). 
 - **UI:** keep HUD on for most shots; capture a few tight HUD crops for health/mana emphasis. 
 - **Audio:** record system/game audio; optional mic if you want controller clicks for a “hands-on” shot. 
-- **Capture method:** run two instances (Host + Join) on the same PC; leave the opponent idle or alt-tab to position them, then record the active player’s window. 
-- **Input:** use Space for ability, left click for attack, WASD/arrow keys for movement, Shift for dash, W/Up for jump. 
+- **Capture method:** run two instances (Host + Join) on the same PC; leave the opponent idle or alt-tab to position them, then record the active player’s window.  
