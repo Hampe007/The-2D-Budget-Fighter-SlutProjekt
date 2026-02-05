@@ -14,6 +14,7 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
 
     [Header("Centering")]
     [SerializeField] private RectTransform centerSlotOverride;
+    [SerializeField] private string centerSlotName = "SelectedCharacterCenter";
     
     [Header("Scroll Settings")]
     [Tooltip("Seconds between allowed scrolls")]
@@ -64,16 +65,15 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
 	
     public void ForceCenterSelectedSlot()
     {
-        var centerTarget = centerSlotOverride != null
-            ? centerSlotOverride
-            : basicSlotImage != null ? basicSlotImage.rectTransform : null;
-        if (centerTarget == null)
-        {
-            return;
-        }
+	    if (basicSlotImage == null)
+	    {
+		    return;
+	    }
 
-        EnsureCentered(centerTarget);
+	    var centerSlot = ResolveCenterSlot(basicSlotImage.rectTransform);
+	    EnsureCenteredInSlot(centerSlot, basicSlotImage.rectTransform);
     }
+    
     private IEnumerator ScrollCooldown(Action act)
     {
         canScroll = false;
@@ -125,44 +125,137 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
     #region Auto-Wiring
     private void AutoWireReferences()
     {
-	    if (portraitSlotImage == null)
-	    {
-		    portraitSlotImage = FindImageByName("PortraitSlot");
-	    }
+        if (portraitSlotImage == null)
+        {
+            portraitSlotImage = FindImageByName("PortraitSlot");
+        }
 
-	    if (basicSlotImage == null)
-	    {
-		    basicSlotImage = FindImageByName("BasicSlot");
-	    }
+        if (basicSlotImage == null)
+        {
+            basicSlotImage = FindImageByName("BasicSlot");
+        }
 
-	    if (abilitySlotImage == null)
-	    {
-		    abilitySlotImage = FindImageByName("AbilitySlot");
-	    }
+        if (abilitySlotImage == null)
+        {
+            abilitySlotImage = FindImageByName("AbilitySlot");
+        }
 
-	    if (centerSlotOverride == null && basicSlotImage != null)
-	    {
-		    centerSlotOverride = basicSlotImage.rectTransform;
-	    }
+        if (centerSlotOverride == null && basicSlotImage != null)
+        {
+            centerSlotOverride = FindCenterSlotInParent(basicSlotImage.rectTransform);
+        }
     }
 
     private Image FindImageByName(string targetName)
     {
-	    var direct = transform.Find(targetName);
-	    if (direct != null && direct.TryGetComponent<Image>(out var image))
-	    {
-		    return image;
-	    }
+        var direct = transform.Find(targetName);
+        if (direct != null && direct.TryGetComponent<Image>(out var image))
+        {
+            return image;
+        }
 
-	    foreach (var img in GetComponentsInChildren<Image>(true))
-	    {
-		    if (img.name == targetName)
-		    {
-			    return img;
-		    }
-	    }
+        foreach (var img in GetComponentsInChildren<Image>(true))
+        {
+            if (img.name == targetName)
+            {
+                return img;
+            }
+        }
 
-	    return null;
+        return null;
+    }
+    #endregion
+
+    #region Centering Helpers
+    private RectTransform ResolveCenterSlot(RectTransform targetImage)
+    {
+        if (centerSlotOverride != null)
+        {
+            return centerSlotOverride;
+        }
+
+        var existing = FindCenterSlotInParent(targetImage);
+        if (existing != null)
+        {
+            centerSlotOverride = existing;
+            return centerSlotOverride;
+        }
+
+        centerSlotOverride = CreateCenterSlot(targetImage);
+        return centerSlotOverride;
+    }
+
+    private RectTransform FindCenterSlotInParent(RectTransform targetImage)
+    {
+        if (targetImage == null || targetImage.parent == null)
+        {
+            return null;
+        }
+
+        var parent = targetImage.parent;
+        var existing = parent.Find(centerSlotName);
+        if (existing != null && existing.TryGetComponent<RectTransform>(out var rect))
+        {
+            return rect;
+        }
+
+        return null;
+    }
+
+    private RectTransform CreateCenterSlot(RectTransform targetImage)
+    {
+        if (targetImage == null || targetImage.parent == null)
+        {
+            return null;
+        }
+
+        var parent = targetImage.parent;
+        var centerSlotObject = new GameObject(centerSlotName, typeof(RectTransform));
+        var centerRect = centerSlotObject.GetComponent<RectTransform>();
+        centerRect.SetParent(parent, worldPositionStays: false);
+        CopyRectTransform(targetImage, centerRect);
+        return centerRect;
+    }
+
+    private void EnsureCenteredInSlot(RectTransform centerSlot, RectTransform targetImage)
+    {
+        if (centerSlot == null || targetImage == null)
+        {
+            return;
+        }
+
+        WarnIfLayoutControlled(centerSlot);
+        targetImage.SetParent(centerSlot, worldPositionStays: false);
+        targetImage.anchorMin = new Vector2(0.5f, 0.5f);
+        targetImage.anchorMax = new Vector2(0.5f, 0.5f);
+        targetImage.pivot = new Vector2(0.5f, 0.5f);
+        targetImage.anchoredPosition = Vector2.zero;
+        targetImage.localRotation = Quaternion.identity;
+        targetImage.localScale = Vector3.one;
+    }
+
+    private void CopyRectTransform(RectTransform source, RectTransform destination)
+    {
+        destination.anchorMin = source.anchorMin;
+        destination.anchorMax = source.anchorMax;
+        destination.pivot = source.pivot;
+        destination.anchoredPosition = source.anchoredPosition;
+        destination.sizeDelta = source.sizeDelta;
+        destination.localRotation = source.localRotation;
+        destination.localScale = source.localScale;
+    }
+
+    private void WarnIfLayoutControlled(Component target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (target.GetComponent<LayoutGroup>() != null || target.GetComponent<ContentSizeFitter>() != null)
+        {
+            Debug.LogWarning($"{nameof(CharacterDetailCarouselSelector)}: Layout components on {target.name} may override manual centering.");
+        }
     }
     #endregion
 
