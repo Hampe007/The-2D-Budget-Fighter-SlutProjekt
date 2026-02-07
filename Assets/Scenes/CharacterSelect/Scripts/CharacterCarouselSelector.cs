@@ -31,12 +31,14 @@ public class CharacterCarouselSelector : MonoBehaviour
     private bool canScroll = true;
 
     public event Action<int> OnCharacterChosen;
+    private readonly Dictionary<Image, Sprite> lastSpriteBySlot = new();
     
     public void Initialize(List<CharacterData> allCharacters)
     {
         characters = allCharacters;
         selectedIndex = 0;
         UpdateSlots(instant: true);
+        lastSpriteBySlot.Clear();
     }
     
     void Update()
@@ -82,17 +84,51 @@ public class CharacterCarouselSelector : MonoBehaviour
 
     void ApplySlot(Image img, Sprite sprite, float targetAlpha, float targetScale, bool instant)
     {
-        img.sprite = sprite;
-        var group = img.GetComponent<CanvasGroup>();
-        if (instant)
-        {
-            group.alpha = targetAlpha;
-            img.rectTransform.localScale = Vector3.one * targetScale;
-        }
-        else
-        {
-            group.DOFade(targetAlpha, scrollCooldown).SetEase(Ease.InOutQuad);
-            img.rectTransform.DOScale(Vector3.one * targetScale, scrollCooldown).SetEase(Ease.OutBack);
-        }
+	    if (img == null)
+		    return;
+
+	    var group = img.GetComponent<CanvasGroup>();
+	    if (group == null)
+		    group = img.gameObject.AddComponent<CanvasGroup>();
+
+	    bool hasLast = lastSpriteBySlot.TryGetValue(img, out var lastSprite);
+	    bool spriteChanged = !hasLast || lastSprite != sprite;
+	    lastSpriteBySlot[img] = sprite;
+
+	    // Stop old tweens so rapid scrolling doesn’t stack
+	    group.DOKill(false);
+	    img.rectTransform.DOKill(false);
+
+	    if (instant || !spriteChanged)
+	    {
+		    img.sprite = sprite;
+		    group.alpha = targetAlpha;
+		    img.rectTransform.localScale = Vector3.one * targetScale;
+		    return;
+	    }
+
+	    float outTime = Mathf.Max(0.01f, scrollCooldown * 0.35f);
+	    float inTime  = Mathf.Max(0.01f, scrollCooldown * 0.65f);
+
+	    float fadeOutTo = Mathf.Clamp(targetAlpha * 0.15f, 0.02f, 0.2f);
+
+	    group.DOFade(fadeOutTo, outTime)
+		    .SetEase(Ease.InOutQuad)
+		    .OnComplete(() =>
+		    {
+			    img.sprite = sprite;
+			    group.DOFade(targetAlpha, inTime).SetEase(Ease.InOutQuad);
+		    });
+
+	    img.rectTransform
+		    .DOScale(Vector3.one * targetScale, scrollCooldown)
+		    .SetEase(Ease.OutBack);
+
+	    bool isCenter = targetScale >= centerScale - 0.0001f;
+	    if (isCenter)
+	    {
+		    img.rectTransform.DOPunchScale(Vector3.one * 0.08f, scrollCooldown, 6, 0.6f);
+	    }
     }
+
 }

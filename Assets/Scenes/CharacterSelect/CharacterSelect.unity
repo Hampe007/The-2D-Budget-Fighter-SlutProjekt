@@ -475,7 +475,6 @@ GameObject:
   - component: {fileID: 61590276}
   - component: {fileID: 61590277}
   - component: {fileID: 61590278}
-  - component: {fileID: 61590279}
   m_Layer: 5
   m_Name: CharacterCarouselPanelRoot
   m_TagString: Untagged
@@ -540,28 +539,6 @@ MonoBehaviour:
   slotLeftImage: {fileID: 505855962}
   slotCenterImage: {fileID: 1238963136}
   slotRightImage: {fileID: 718510130}
-  scrollCooldown: 0.3
-  sideAlpha: 0.5
-  sideScale: 0.8
-  centerAlpha: 1
-  centerScale: 1.2
-  selectedIndex: 0
---- !u!114 &61590279
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 61590275}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7a54a1090a09ce4196e05d566443479, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterCarouselSelector
-  characters: []
-  slotLeftImage: {fileID: 0}
-  slotCenterImage: {fileID: 0}
-  slotRightImage: {fileID: 0}
   scrollCooldown: 0.3
   sideAlpha: 0.5
   sideScale: 0.8

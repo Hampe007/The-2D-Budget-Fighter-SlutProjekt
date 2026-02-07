@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System;
 using System.Collections;
 using DG.Tweening;
+using System.Collections.Generic;
 
 public class CharacterDetailCarouselSelector : MonoBehaviour
 {
@@ -26,6 +27,7 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
     private bool canScroll = true;
     
     public event Action<int> OnDetailIndexChanged;
+    private readonly Dictionary<Image, Sprite> lastSpriteBySlot = new();
     
     #region Unity Lifecycle
 	private void Awake()
@@ -45,6 +47,7 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
         selectedIndex = 0;
         UpdateSlots(instant: true);
         OnDetailIndexChanged?.Invoke(0);
+        lastSpriteBySlot.Clear();
     }
     
     void Update()
@@ -120,22 +123,52 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
 
     private void ApplySlot(Image img, Sprite sprite, bool isCenter, bool instant)
     {
-        img.sprite = sprite;
+	    if (img == null)
+		    return;
 
-        float targetAlpha = isCenter ? 1f : 0.5f;
-        float targetScale = isCenter ? 1.2f : 0.8f;
-        var group = img.GetComponent<CanvasGroup>();
+	    bool hasLast = lastSpriteBySlot.TryGetValue(img, out var lastSprite);
+	    bool spriteChanged = !hasLast || lastSprite != sprite;
+	    lastSpriteBySlot[img] = sprite;
 
-        if (instant)
-        {
-            group.alpha = targetAlpha;
-            img.rectTransform.localScale = Vector3.one * targetScale;
-        }
-        else
-        {
-            group.DOFade(targetAlpha, scrollCooldown);
-            img.rectTransform.DOScale(Vector3.one * targetScale, scrollCooldown);
-        }
+	    float targetAlpha = isCenter ? 1f : 0.5f;
+	    float targetScale = isCenter ? 1.2f : 0.8f;
+
+	    var group = img.GetComponent<CanvasGroup>();
+	    if (group == null)
+		    group = img.gameObject.AddComponent<CanvasGroup>();
+
+	    group.DOKill(false);
+	    img.rectTransform.DOKill(false);
+
+	    if (instant || !spriteChanged)
+	    {
+		    img.sprite = sprite;
+		    group.alpha = targetAlpha;
+		    img.rectTransform.localScale = Vector3.one * targetScale;
+		    return;
+	    }
+
+	    float outTime = Mathf.Max(0.01f, scrollCooldown * 0.35f);
+	    float inTime  = Mathf.Max(0.01f, scrollCooldown * 0.65f);
+
+	    float fadeOutTo = isCenter ? 0.15f : 0.05f;
+	    group.alpha = Mathf.Min(group.alpha, targetAlpha);
+
+	    group.DOFade(fadeOutTo, outTime)
+		    .SetEase(Ease.InOutQuad)
+		    .OnComplete(() =>
+		    {
+			    img.sprite = sprite;
+			    group.DOFade(targetAlpha, inTime).SetEase(Ease.InOutQuad);
+		    });
+
+	    img.rectTransform.DOScale(Vector3.one * targetScale, scrollCooldown)
+		    .SetEase(isCenter ? Ease.OutBack : Ease.InOutQuad);
+
+	    if (isCenter)
+	    {
+		    img.rectTransform.DOPunchScale(Vector3.one * 0.08f, scrollCooldown, 6, 0.6f);
+	    }
     }
     
     private Image[] GetOrderedSlots()
