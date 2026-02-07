@@ -324,13 +324,11 @@ public abstract class FighterBase : NetworkBehaviour
 	// Animations
 	protected void PlayAttackAnimation()
 	{
-		if (!IsOwner) return;
 		animator.SetTrigger("AttackTrigger");
 	}
 
 	private void PlayDamageAnimation()
 	{
-		if (!IsOwner) return;
 		animator.SetTrigger("DamageTrigger");
 	}
 
@@ -466,10 +464,12 @@ public abstract class FighterBase : NetworkBehaviour
 		victim.ApplyBurn(totalDamage, duration);
 	}
 
-// Separate from the public RPC-able version
+	// Separate from the public RPC-able version
 	private void ApplyDamage(int amount, FighterBase attacker)
 	{
 		if (isDead) return;
+		
+		PlayDamageAnimationClientRpc();
 
 		currentHealth = Mathf.Clamp(currentHealth - amount, 0, maxHealth);
 
@@ -493,9 +493,8 @@ public abstract class FighterBase : NetworkBehaviour
 		{
 			UpdateHealthSlider();
 
-			// NEW: if the slider just hit zero, finish the death routine locally
 			if (currentHealth <= 0 && !isDead)
-				Die(); // ← this time IsOwner == true, so FinalizeLocalMatch() runs
+				Die();
 		}
 	}
 
@@ -503,5 +502,11 @@ public abstract class FighterBase : NetworkBehaviour
 	private void AddKillClientRpc(ClientRpcParams p = default)
 	{
 		FighterBase.sessionKills++;
+	}
+	
+	[ClientRpc]
+	private void PlayDamageAnimationClientRpc()
+	{
+		animator.SetTrigger("DamageTrigger");
 	}
 }
