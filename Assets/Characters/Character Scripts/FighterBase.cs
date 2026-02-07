@@ -371,7 +371,7 @@ public abstract class FighterBase : NetworkBehaviour
 	private void FinalizeLocalMatch(bool won, int kills, int deaths)
 	{
 		Debug.Log("FinalizeLocalMatch in FighterBase is triggered");
-		var gm = FindObjectOfType<GameManager>();
+		var gm = FindFirstObjectByType<GameManager>();
 		if (gm == null)
 			Debug.Log("gm is null");
 		if (gm != null)

@@ -6,13 +6,13 @@ using System;
 public class CharacterDetailDisplay : MonoBehaviour
 {
 	#region Serialized References
-    [Header("References")]
-    [SerializeField] private CharacterDetailCarouselSelector detailCarousel;
-    [SerializeField] private TMP_Text nameText;
-    [SerializeField] private TMP_Text titleText;
-    [SerializeField] private TMP_Text descriptionText;
-    [SerializeField] private Button backButton;
-    [SerializeField] private Button confirmButton;
+	[Header("References")]
+	[SerializeField] private CharacterDetailCarouselSelector detailCarousel;
+	[SerializeField] private TMP_Text nameText;
+	[SerializeField] private TMP_Text titleText;
+	[SerializeField] private TMP_Text descriptionText;
+	[SerializeField] private Button backButton;
+	[SerializeField] private Button confirmButton;
 	#endregion
 	
     private CharacterData currentData;
@@ -45,7 +45,6 @@ public class CharacterDetailDisplay : MonoBehaviour
             data.basicAttackSprite,
             data.abilitySprite
         );
-        
         detailCarousel.ForceCenterSelectedSlot();
 
         detailCarousel.OnDetailIndexChanged += OnAspectChanged;
@@ -78,6 +77,7 @@ public class CharacterDetailDisplay : MonoBehaviour
                 break;
         }
     }
+    
     #region Auto-Wiring
     private void AutoWireReferences()
     {

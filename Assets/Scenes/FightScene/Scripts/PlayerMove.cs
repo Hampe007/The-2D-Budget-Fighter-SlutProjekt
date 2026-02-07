@@ -56,7 +56,7 @@ public class PlayerMove : NetworkBehaviour
 		rb = GetComponent<Rigidbody2D>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		animator = GetComponent<Animator>();
-		gameManager = FindObjectOfType<GameManager>();
+		gameManager = FindFirstObjectByType<GameManager>();
 	}
 
 	private void Update()

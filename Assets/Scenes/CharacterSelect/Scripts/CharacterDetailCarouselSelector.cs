@@ -28,16 +28,16 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
     public event Action<int> OnDetailIndexChanged;
     
     #region Unity Lifecycle
-    private void Awake()
-    {
-	    AutoWireReferences();
-    }
-
-    private void OnEnable()
-    {
-	    ForceCenterSelectedSlot();
-    }
-    #endregion
+	private void Awake()
+	{
+		AutoWireReferences();
+	}
+    
+	private void OnEnable()
+	{
+		ForceCenterSelectedSlot();
+	}
+	#endregion
 
     public void Initialize(Sprite idleSprite, Sprite basicSprite, Sprite abilitySprite)
     {
@@ -54,13 +54,13 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.LeftArrow))
             StartCoroutine(ScrollCooldown(() => ChangeIndex(-1)));
         else if (Input.GetKeyDown(KeyCode.RightArrow))
-            StartCoroutine(ScrollCooldown(() => ChangeIndex(+1)));
+            StartCoroutine(ScrollCooldown(() => ChangeIndex(1)));
         else if (Input.GetKeyDown(KeyCode.Space))
             OnDetailIndexChanged?.Invoke(selectedIndex);
     }
     
-    public void MoveLeft()  => StartCoroutine(ScrollCooldown(() => ChangeIndex(+1)));
-    public void MoveRight() => StartCoroutine(ScrollCooldown(() => ChangeIndex(-1)));
+    public void MoveLeft()  => StartCoroutine(ScrollCooldown(() => ChangeIndex(-1)));
+    public void MoveRight() => StartCoroutine(ScrollCooldown(() => ChangeIndex(1)));
     public void Confirm() => OnDetailIndexChanged?.Invoke(selectedIndex);
 	
     public void ForceCenterSelectedSlot()
@@ -99,7 +99,6 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
         ApplySlot(portraitSlotImage, sprites[left],   false, instant);
         ApplySlot(basicSlotImage,    sprites[selectedIndex], true, instant);
         ApplySlot(abilitySlotImage,  sprites[right],  false, instant);
-		ForceCenterSelectedSlot();
     }
 
     private void ApplySlot(Image img, Sprite sprite, bool isCenter, bool instant)
@@ -219,19 +218,19 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
 
     private void EnsureCenteredInSlot(RectTransform centerSlot, RectTransform targetImage)
     {
-        if (centerSlot == null || targetImage == null)
-        {
-            return;
-        }
+	    if (centerSlot == null || targetImage == null)
+		    return;
 
-        WarnIfLayoutControlled(centerSlot);
-        targetImage.SetParent(centerSlot, worldPositionStays: false);
-        targetImage.anchorMin = new Vector2(0.5f, 0.5f);
-        targetImage.anchorMax = new Vector2(0.5f, 0.5f);
-        targetImage.pivot = new Vector2(0.5f, 0.5f);
-        targetImage.anchoredPosition = Vector2.zero;
-        targetImage.localRotation = Quaternion.identity;
-        targetImage.localScale = Vector3.one;
+	    WarnIfLayoutControlled(centerSlot);
+
+	    if (targetImage.parent != centerSlot)
+		    targetImage.SetParent(centerSlot, worldPositionStays: false);
+
+	    targetImage.anchorMin = new Vector2(0.5f, 0.5f);
+	    targetImage.anchorMax = new Vector2(0.5f, 0.5f);
+	    targetImage.pivot = new Vector2(0.5f, 0.5f);
+	    targetImage.anchoredPosition = Vector2.zero;
+	    targetImage.localRotation = Quaternion.identity;
     }
 
     private void CopyRectTransform(RectTransform source, RectTransform destination)
@@ -256,32 +255,6 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
         {
             Debug.LogWarning($"{nameof(CharacterDetailCarouselSelector)}: Layout components on {target.name} may override manual centering.");
         }
-    }
-    #endregion
-
-    #region Centering Helpers
-    private void EnsureCentered(RectTransform rectTransform)
-    {
-	    WarnIfLayoutControlled(rectTransform);
-	    rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-	    rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-	    rectTransform.pivot = new Vector2(0.5f, 0.5f);
-	    rectTransform.anchoredPosition = Vector2.zero;
-	    rectTransform.localRotation = Quaternion.identity;
-	    rectTransform.localScale = Vector3.one;
-    }
-
-    private void WarnIfLayoutControlled(Component target)
-    {
-	    if (target == null)
-	    {
-		    return;
-	    }
-
-	    if (target.GetComponent<LayoutGroup>() != null || target.GetComponent<ContentSizeFitter>() != null)
-	    {
-		    Debug.LogWarning($"{nameof(CharacterDetailCarouselSelector)}: Layout components on {target.name} may override manual centering.");
-	    }
     }
     #endregion
 }
