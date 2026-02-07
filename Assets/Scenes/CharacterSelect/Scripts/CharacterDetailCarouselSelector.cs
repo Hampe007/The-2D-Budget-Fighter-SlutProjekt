@@ -70,8 +70,15 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
 		    return;
 	    }
 
-	    var centerSlot = ResolveCenterSlot(basicSlotImage.rectTransform);
-	    EnsureCenteredInSlot(centerSlot, basicSlotImage.rectTransform);
+	    var orderedSlots = GetOrderedSlots();
+	    var centerImage = orderedSlots.Length > 1 ? orderedSlots[1] : basicSlotImage;
+	    if (centerImage == null)
+	    {
+		    return;
+	    }
+
+	    var centerSlot = ResolveCenterSlot(centerImage.rectTransform);
+	    EnsureCenteredInSlot(centerSlot, centerImage.rectTransform);
     }
     
     private IEnumerator ScrollCooldown(Action act)
@@ -96,9 +103,19 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
         int left  = (selectedIndex - 1 + count) % count;
         int right = (selectedIndex + 1) % count;
         
-        ApplySlot(portraitSlotImage, sprites[left],   false, instant);
-        ApplySlot(basicSlotImage,    sprites[selectedIndex], true, instant);
-        ApplySlot(abilitySlotImage,  sprites[right],  false, instant);
+        var orderedSlots = GetOrderedSlots();
+        if (orderedSlots.Length >= 3)
+        {
+	        ApplySlot(orderedSlots[0], sprites[left],   false, instant);
+	        ApplySlot(orderedSlots[1], sprites[selectedIndex], true, instant);
+	        ApplySlot(orderedSlots[2], sprites[right],  false, instant);
+        }
+        else
+        {
+	        ApplySlot(portraitSlotImage, sprites[left],   false, instant);
+	        ApplySlot(basicSlotImage,    sprites[selectedIndex], true, instant);
+	        ApplySlot(abilitySlotImage,  sprites[right],  false, instant);
+        }
     }
 
     private void ApplySlot(Image img, Sprite sprite, bool isCenter, bool instant)
@@ -119,6 +136,18 @@ public class CharacterDetailCarouselSelector : MonoBehaviour
             group.DOFade(targetAlpha, scrollCooldown);
             img.rectTransform.DOScale(Vector3.one * targetScale, scrollCooldown);
         }
+    }
+    
+    private Image[] GetOrderedSlots()
+    {
+	    var slots = new[] { portraitSlotImage, basicSlotImage, abilitySlotImage };
+	    if (Array.Exists(slots, slot => slot == null))
+	    {
+		    return slots;
+	    }
+
+	    Array.Sort(slots, (a, b) => a.rectTransform.position.x.CompareTo(b.rectTransform.position.x));
+	    return slots;
     }
     
     #region Auto-Wiring
