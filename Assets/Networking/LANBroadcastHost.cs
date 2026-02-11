@@ -6,223 +6,219 @@ using System.Text;
 using Unity.Netcode;
 using TMPro;
 
-/// <summary>
-/// Broadcasts the host's IP address over the LAN periodically for auto-discovery.
-/// Broadcast frequency decreases over time and stops when a client connects or host shuts down.
-/// </summary>
 public class LANBroadcastHost : MonoBehaviour
 {
-	[Header("Broadcast Settings")]
-	[SerializeField]
-	private int broadcastPort = 47777;
+    #region Inspector
+    [Header("Broadcast Settings")]
+    [SerializeField] private int broadcastPort = 47777;
 
-	private UdpClient udpClient;
-	[SerializeField]
-	private float timer;
-	[SerializeField]
-	private float elapsedTime;
-	[SerializeField]
-	private float currentInterval = 3f; // Start with 3 seconds
+    [Header("UI References")]
+    [SerializeField] private TextMeshProUGUI broadcastStatusText;
 
-	[Header("UI References")]
-	[SerializeField]
-	private TextMeshProUGUI broadcastStatusText;
+    [Header("Pulse Settings")]
+    [SerializeField] private float pulseSpeed = 2f;
+    [SerializeField] private float pulseStrength = 2f;
+    #endregion
 
-	[Header("Pulse Settings")]
-	[SerializeField]
-	private float pulseSpeed = 2f; // How fast it pulses
-	[SerializeField]
-	private float pulseStrength = 2f; // How much the font size changes
+    #region State
+    private UdpClient udpClient;
+    private NetworkManager networkManager;
 
-	private float baseFontSize; // To remember original font size
+    [SerializeField] private float timer;
+    [SerializeField] private float elapsedTime;
+    [SerializeField] private float currentInterval = 3f;
 
-	private void Start()
-	{
-		udpClient = new UdpClient();
-		udpClient.EnableBroadcast = true;
-		Debug.Log("[LANBroadcastHost] Broadcast started.");
+    private float baseFontSize;
+    private bool hasStopped;
+    #endregion
 
-		if (broadcastStatusText != null)
-			baseFontSize = broadcastStatusText.fontSize;
-	}
+    #region Unity lifecycle
+    private void Awake()
+    {
+        networkManager = NetworkManager.Singleton;
 
-	private void Update()
-	{
-		if (!NetworkManager.Singleton.IsHost)
-		{
-			Debug.Log("[LANBroadcastHost] Host stopped. Stopping broadcast.");
-			StopBroadcasting();
-			return;
-		}
+        if (broadcastStatusText != null)
+            baseFontSize = broadcastStatusText.fontSize;
+    }
 
-		if (NetworkManager.Singleton.ConnectedClientsList.Count >= 2)
-		{
-			Debug.Log("[LANBroadcastHost] Client connected! Stopping broadcast.");
-			StopBroadcasting();
-			return;
-		}
+    private void Start()
+    {
+        udpClient = new UdpClient();
+        udpClient.EnableBroadcast = true;
 
-		elapsedTime += Time.deltaTime;
-		timer += Time.deltaTime;
+        Debug.Log("[LANBroadcastHost] Broadcast started.");
+    }
 
-		UpdateBroadcastInterval();
-		UpdateBroadcastStatusText();
-		UpdatePulseEffect();
+    private void Update()
+    {
+        if (hasStopped)
+            return;
 
-		if (timer >= currentInterval)
-		{
-			timer = 0f;
-			BroadcastHostInfo();
-		}
-	}
+        if (networkManager == null)
+        {
+            networkManager = NetworkManager.Singleton;
+            if (networkManager == null)
+            {
+                StopBroadcasting();
+                return;
+            }
+        }
 
-	private void UpdateBroadcastInterval()
-	{
-		if (elapsedTime < 30f)
-		{
-			currentInterval = 3f; // 0-30s: every 3 seconds
-		}
-		else if (elapsedTime < 120f)
-		{
-			currentInterval = 10f; // 30-120s: every 10 seconds
-		}
-		else
-		{
-			currentInterval = 30f; // After 2min: every 30 seconds
-		}
-	}
+        if (!networkManager.IsHost)
+        {
+            StopBroadcasting();
+            return;
+        }
 
-	private void BroadcastHostInfo()
-	{
-		// Get the local machine’s IP address
-		string hostIP = GetLocalIPAddress();
+        if (networkManager.ConnectedClientsList != null && networkManager.ConnectedClientsList.Count >= 2)
+        {
+            StopBroadcasting();
+            return;
+        }
 
-		// Prepare the broadcast message with a “FIGHTHOST:” prefix
-		string message = $"FIGHTHOST:{hostIP}";
+        elapsedTime += Time.deltaTime;
+        timer += Time.deltaTime;
 
-		// Encode the message string into a UTF-8 byte array
-		byte[] data = Encoding.UTF8.GetBytes(message);
+        UpdateBroadcastInterval();
+        UpdateBroadcastStatusText();
+        UpdatePulseEffect();
 
-		// Loop through all network interfaces on this machine
-		foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
-		{
-			// Skip interfaces that aren’t currently active
-			if (ni.OperationalStatus != OperationalStatus.Up)
-				continue;
+        if (timer >= currentInterval)
+        {
+            timer = 0f;
+            BroadcastHostInfo();
+        }
+    }
 
-			// For each active interface, examine its unicast IP addresses
-			foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
-			{
-				// We only care about IPv4 addresses here
-				if (ip.Address.AddressFamily != AddressFamily.InterNetwork)
-					continue;
+    private void OnDestroy()
+    {
+        StopBroadcasting();
+    }
+    #endregion
 
-				// Compute the broadcast address from the IP and its subnet mask
-				IPAddress broadcastAddress = GetBroadcastAddress(ip.Address, ip.IPv4Mask);
-				if (broadcastAddress == null)
-					continue;
+    #region Broadcast
+    private void BroadcastHostInfo()
+    {
+        if (udpClient == null)
+            return;
 
-				try
-				{
-					// Create an endpoint targeting the broadcast address on the chosen port
-					IPEndPoint endPoint = new IPEndPoint(broadcastAddress, broadcastPort);
+        string hostIP = GetLocalIPAddress();
+        string message = $"FIGHTHOST:{hostIP}";
+        byte[] data = Encoding.UTF8.GetBytes(message);
 
-					// Send the UDP broadcast packet
-					udpClient.Send(data, data.Length, endPoint);
+        foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.OperationalStatus != OperationalStatus.Up)
+                continue;
 
-					Debug.Log($"[LANBroadcastHost] Broadcasting IP: {hostIP} to {broadcastAddress}");
-				}
-				catch (SocketException ex)
-				{
-					// If sending fails, log a warning with the error message
-					Debug.LogWarning($"[LANBroadcastHost] Failed to send broadcast to {broadcastAddress}: {ex.Message}");
-				}
-			}
-		}
-	}
+            foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
+            {
+                if (ip.Address.AddressFamily != AddressFamily.InterNetwork)
+                    continue;
 
-	private IPAddress GetBroadcastAddress(IPAddress address, IPAddress subnetMask)
-	{
-		byte[] ipBytes = address.GetAddressBytes();
-		byte[] maskBytes = subnetMask.GetAddressBytes();
+                IPAddress broadcastAddress = GetBroadcastAddress(ip.Address, ip.IPv4Mask);
+                if (broadcastAddress == null)
+                    continue;
 
-		if (ipBytes.Length != maskBytes.Length)
-			return null;
+                try
+                {
+                    IPEndPoint endPoint = new IPEndPoint(broadcastAddress, broadcastPort);
+                    udpClient.Send(data, data.Length, endPoint);
+                }
+                catch (SocketException ex)
+                {
+                    Debug.LogWarning($"[LANBroadcastHost] Failed broadcast to {broadcastAddress}: {ex.Message}");
+                }
+            }
+        }
+    }
 
-		byte[] broadcastBytes = new byte[ipBytes.Length];
-		for (int i = 0; i < ipBytes.Length; i++)
-		{
-			broadcastBytes[i] = (byte)(ipBytes[i] | (maskBytes[i] ^ 255));
-		}
+    private static IPAddress GetBroadcastAddress(IPAddress address, IPAddress subnetMask)
+    {
+        byte[] ipBytes = address.GetAddressBytes();
+        byte[] maskBytes = subnetMask.GetAddressBytes();
 
-		return new IPAddress(broadcastBytes);
-	}
+        if (ipBytes.Length != maskBytes.Length)
+            return null;
 
-	private void StopBroadcasting()
-	{
-		if (udpClient != null)
-		{
-			udpClient.Close();
-			udpClient = null;
-		}
+        byte[] broadcastBytes = new byte[ipBytes.Length];
+        for (int i = 0; i < ipBytes.Length; i++)
+            broadcastBytes[i] = (byte)(ipBytes[i] | (maskBytes[i] ^ 255));
 
-		enabled = false; // Disable Update loop
-	}
+        return new IPAddress(broadcastBytes);
+    }
 
-	private string GetLocalIPAddress()
-	{
-		var host = Dns.GetHostEntry(Dns.GetHostName());
-		foreach (var ip in host.AddressList)
-		{
-			if (ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
-			{
-				if (!ip.ToString().StartsWith("169.") && !ip.ToString().StartsWith("127.") && !ip.ToString().StartsWith("192.168.56.")) // Exclude VirtualBox, Loopback
-				{
-					return ip.ToString();
-				}
-			}
-		}
+    private void StopBroadcasting()
+    {
+        if (hasStopped)
+            return;
 
-		return "127.0.0.1";
-	}
+        hasStopped = true;
 
-	private void OnDestroy()
-	{
-		StopBroadcasting();
-	}
+        if (udpClient != null)
+        {
+            udpClient.Close();
+            udpClient = null;
+        }
 
-	private void UpdateBroadcastStatusText()
-	{
-		if (broadcastStatusText != null)
-		{
-			int elapsedSeconds = Mathf.FloorToInt(elapsedTime);
-			int intervalSeconds = Mathf.FloorToInt(currentInterval);
+        enabled = false;
+    }
+    #endregion
 
-			string colorTag;
+    #region UI
+    private void UpdateBroadcastInterval()
+    {
+        if (elapsedTime < 30f) currentInterval = 3f;
+        else if (elapsedTime < 120f) currentInterval = 10f;
+        else currentInterval = 30f;
+    }
 
-			if (elapsedSeconds < 30)
-			{
-				colorTag = "<color=green>";
-			}
-			else if (elapsedSeconds < 120)
-			{
-				colorTag = "<color=yellow>";
-			}
-			else
-			{
-				colorTag = "<color=red>";
-			}
+    private void UpdateBroadcastStatusText()
+    {
+        if (broadcastStatusText == null)
+            return;
 
-			broadcastStatusText.text = $"{colorTag}Elapsed: {elapsedSeconds}s\nBroadcast every: {intervalSeconds}s</color>";
-		}
-	}
+        int elapsedSeconds = Mathf.FloorToInt(elapsedTime);
+        int intervalSeconds = Mathf.FloorToInt(currentInterval);
 
-	private void UpdatePulseEffect()
-	{
-		if (broadcastStatusText != null)
-		{
-			float pulse = Mathf.Sin(Time.time * pulseSpeed) * pulseStrength;
-			broadcastStatusText.fontSize = baseFontSize + pulse;
-		}
-	}
+        string colorTag =
+            elapsedSeconds < 30 ? "<color=green>" :
+            elapsedSeconds < 120 ? "<color=yellow>" :
+            "<color=red>";
+
+        broadcastStatusText.text = $"{colorTag}Elapsed: {elapsedSeconds}s\nBroadcast every: {intervalSeconds}s</color>";
+    }
+
+    private void UpdatePulseEffect()
+    {
+        if (broadcastStatusText == null)
+            return;
+
+        float pulse = Mathf.Sin(Time.time * pulseSpeed) * pulseStrength;
+        broadcastStatusText.fontSize = baseFontSize + pulse;
+    }
+    #endregion
+
+    #region IP
+    private static string GetLocalIPAddress()
+    {
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+        foreach (var ip in host.AddressList)
+        {
+            if (ip.AddressFamily != AddressFamily.InterNetwork)
+                continue;
+
+            if (IPAddress.IsLoopback(ip))
+                continue;
+
+            string s = ip.ToString();
+            if (s.StartsWith("169.") || s.StartsWith("127.") || s.StartsWith("192.168.56."))
+                continue;
+
+            return s;
+        }
+
+        return "127.0.0.1";
+    }
+    #endregion
 }

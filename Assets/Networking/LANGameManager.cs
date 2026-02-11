@@ -1,4 +1,5 @@
-using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Collections;
 using UnityEngine;
 using Unity.Netcode;
@@ -26,7 +27,7 @@ public class LANGameManager : MonoBehaviour
     [SerializeField] private GameObject lanBroadcastClient;
     
     [Header("Connection Settings")]
-    [SerializeField] private ushort port = 7777; // Port must be ushort instead of int because UnityTransport requires ushort and network ports are 16-bit values.
+    [SerializeField] private ushort port = 8888; // Port must be ushort instead of int because UnityTransport requires ushort and network ports are 16-bit values.
 
     private Coroutine searchCoroutine;
     
@@ -81,9 +82,27 @@ public class LANGameManager : MonoBehaviour
 
     private void StartHost()
     {
-        transport.SetConnectionData("0.0.0.0", port);
-        NetworkManager.Singleton.StartHost();
+	    if (NetworkManager.Singleton.IsListening)
+	    {
+		    Debug.LogWarning("[LANGameManager] Host start ignored because a network session is already running.");
+		    return;
+	    }
 
+	    if (!IsUdpPortAvailable(port))
+	    {
+		    Debug.LogError($"[LANGameManager] Cannot start host because UDP port {port} is already in use. Close the other host/process or change the configured LAN port.");
+		    return;
+	    }
+	    
+        transport.SetConnectionData("0.0.0.0", port);
+        bool hostStarted = NetworkManager.Singleton.StartHost();
+
+        if (!hostStarted)
+        {
+	        Debug.LogError("[LANGameManager] Host failed to start. Verify that the selected port is free and try again.");
+	        return;
+        }
+        
         if (waitingHandler != null)
             waitingHandler.ShowWaitingPanel();
 
@@ -105,6 +124,12 @@ public class LANGameManager : MonoBehaviour
 
     private void StartClient()
     {
+	    if (NetworkManager.Singleton.IsListening)
+	    {
+		    Debug.LogWarning("[LANGameManager] Client start ignored because a network session is already running.");
+		    return;
+	    }
+	    
         if (waitingHandler != null)
             waitingHandler.ShowConnectingPanel();
 
@@ -167,8 +192,31 @@ public class LANGameManager : MonoBehaviour
     private void ConnectToHost(string ipAddress)
     {
             transport.SetConnectionData(ipAddress, port);
-            NetworkManager.Singleton.StartClient();
+            bool clientStarted = NetworkManager.Singleton.StartClient();
+
+            if (!clientStarted)
+            {
+	            Debug.LogError($"[LANGameManager] Failed to start client for host {ipAddress}:{port}.");
+	            return;
+            }
+            
             Debug.Log($"[LANGameManager] Attempting to join host at {ipAddress}...");
+    }
+    private static bool IsUdpPortAvailable(ushort candidatePort)
+    {
+	    try
+	    {
+		    using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+		    {
+			    socket.ExclusiveAddressUse = true;
+			    socket.Bind(new IPEndPoint(IPAddress.Any, candidatePort));
+			    return true;
+		    }
+	    }
+	    catch (SocketException)
+	    {
+		    return false;
+	    }
     }
 }
 

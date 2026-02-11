@@ -160,7 +160,7 @@ MonoBehaviour:
   m_DisconnectTimeoutMS: 30000
   ConnectionData:
     Address: '0.0.0.0 '
-    Port: 7777
+    Port: 8888
     ServerListenAddress: 0.0.0.0
   DebugSimulator:
     PacketDelayMS: 0
@@ -1099,7 +1099,6 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
     m_Quality: 3
     m_FrameInfluence: 0.1
@@ -1107,6 +1106,7 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &1064485488
 GameObject:
   m_ObjectHideFlags: 0
@@ -2690,7 +2690,7 @@ MonoBehaviour:
   waitingHandler: {fileID: 903329079}
   lanBroadcastHost: {fileID: 2129642421}
   lanBroadcastClient: {fileID: 401124065}
-  port: 7777
+  port: 8888
 --- !u!1 &2062673925
 GameObject:
   m_ObjectHideFlags: 0
@@ -2770,12 +2770,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   broadcastPort: 47777
-  timer: 0
-  elapsedTime: 0
-  currentInterval: 3
   broadcastStatusText: {fileID: 630428911}
   pulseSpeed: 2
   pulseStrength: 2
+  timer: 0
+  elapsedTime: 0
+  currentInterval: 3
 --- !u!1 &276104774354120202
 GameObject:
   m_ObjectHideFlags: 0
