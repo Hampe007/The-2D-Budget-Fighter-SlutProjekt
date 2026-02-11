@@ -21,6 +21,10 @@ public sealed class Samurai : FighterBase
     [Header("Detection")]
     [SerializeField] private float latchRadius = 0.5f;
     [SerializeField] private float extraSweepPadding = 0.1f;
+    
+    [Header("End locks (enemy stays locked longer)")]
+    [SerializeField] private float samuraiEndLockTime = 0.06f;
+    [SerializeField] private float enemyEndLockTime = 0.18f;
 
     private float lastDashTime;
     private bool isDashing;
@@ -37,6 +41,8 @@ public sealed class Samurai : FighterBase
 
     #region Physics
     private Rigidbody2D rb;
+    private int fightersMask;
+    private int groundMask;
     #endregion
 
     #region Ghost afterImage
@@ -46,11 +52,6 @@ public sealed class Samurai : FighterBase
     private float ghostSpawnInterval;
     private float ghostSpawnTimer;
     [SerializeField] private float numberOfGhost = 10f;
-    #endregion
-
-    #region Cached masks
-    private int fightersMask;
-    private int groundMask;
     #endregion
 
     #region Unity
@@ -92,12 +93,11 @@ public sealed class Samurai : FighterBase
     private void StartDashPierce()
     {
         if (isDashing) return;
-
         StartCoroutine(DashCoroutine());
     }
     #endregion
 
-    #region Dash core (Yone-style latch + end placement)
+    #region Dash core
     private IEnumerator DashCoroutine()
     {
         if (rb == null || mainCollider == null)
@@ -112,12 +112,13 @@ public sealed class Samurai : FighterBase
             animator.SetTrigger("AbilityTrigger");
 
         int originalLayer = gameObject.layer;
-        gameObject.layer = LayerMask.NameToLayer("NoCollision");
-
         float originalGravity = rb.gravityScale;
+        
+        gameObject.layer = LayerMask.NameToLayer("NoCollision");
+        
         rb.gravityScale = 0f;
         rb.linearVelocity = Vector2.zero;
-
+        rb.angularVelocity = 0f;
         Vector2 dashDirection = transform.localScale.x < 0 ? Vector2.left : Vector2.right;
 
         float minX = leftWallCollider != null ? leftWallCollider.bounds.max.x : float.NegativeInfinity;
@@ -165,9 +166,7 @@ public sealed class Samurai : FighterBase
             RaycastHit2D wallHit = Physics2D.Raycast(transform.position, dashDirection, sweepLen, groundMask);
             if (wallHit.collider != null)
             {
-                Vector2 hitPoint = wallHit.point;
-                dashEnd = hitPoint - dashDirection * 0.05f;
-
+	            dashEnd = wallHit.point - dashDirection * 0.05f;
                 dashEnd.x = Mathf.Clamp(dashEnd.x, minX, maxX);
                 dashEnd.y = Mathf.Max(dashEnd.y, minY);
 
@@ -201,15 +200,33 @@ public sealed class Samurai : FighterBase
 
                 Rigidbody2D opponentRb = opponent.GetComponent<Rigidbody2D>();
                 if (opponentRb != null)
-                    opponentRb.linearVelocity = Vector2.zero;
+                {
+	                opponentRb.linearVelocity = Vector2.zero;
+	                opponentRb.angularVelocity = 0f;
+                }
             }
 
             elapsed += dt;
             yield return new WaitForFixedUpdate();
         }
 
-        ResolveEndPositionsYoneStyle(dashEnd, dashDirection, latched, minX, maxX, minY);
+        SnapToEndPositions(dashEnd, dashDirection, latched, minX, maxX, minY);
 
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+
+        for (int i = 0; i < latched.Count; i++)
+        {
+	        Rigidbody2D oppRb = latched[i] != null ? latched[i].GetComponent<Rigidbody2D>() : null;
+	        if (oppRb == null) continue;
+
+	        oppRb.linearVelocity = Vector2.zero;
+	        oppRb.angularVelocity = 0f;
+        }
+
+        if (samuraiEndLockTime > 0f || enemyEndLockTime > 0f)
+	        StartCoroutine(EndLockCoroutine(latched, samuraiEndLockTime, enemyEndLockTime));
+        
         gameObject.layer = originalLayer;
         rb.gravityScale = originalGravity;
 
@@ -218,7 +235,7 @@ public sealed class Samurai : FighterBase
         mainCollider.isTrigger = false;
     }
 
-    private void ResolveEndPositionsYoneStyle(
+    private void SnapToEndPositions(
         Vector2 dashEnd,
         Vector2 dashDirection,
         List<FighterBase> latched,
@@ -227,14 +244,10 @@ public sealed class Samurai : FighterBase
         float minY)
     {
         Vector2 playerEnd = dashEnd - dashDirection * stopBehindOpponentOffset;
-
         playerEnd.x = Mathf.Clamp(playerEnd.x, minX, maxX);
         playerEnd.y = Mathf.Max(playerEnd.y, minY);
 
         rb.MovePosition(playerEnd);
-
-        if (latched == null || latched.Count == 0)
-            return;
 
         for (int i = 0; i < latched.Count; i++)
         {
@@ -245,7 +258,6 @@ public sealed class Samurai : FighterBase
 
             Vector2 enemyEnd = dashEnd;
             enemyEnd.y += i * enemyStackVerticalSpacing;
-
             enemyEnd.x = Mathf.Clamp(enemyEnd.x, minX, maxX);
             enemyEnd.y = Mathf.Max(enemyEnd.y, minY);
 
@@ -255,15 +267,59 @@ public sealed class Samurai : FighterBase
                 opponent.transform.position = enemyEnd;
         }
     }
-    #endregion
-
-    #region Optional safety stop
-    private void OnCollisionEnter2D(Collision2D collision)
+    
+    private IEnumerator EndLockCoroutine(List<FighterBase> latched, float samuraiTime, float enemyTime)
     {
-        if (!isDashing) return;
+	    if (rb == null)
+		    yield break;
 
-        if (collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
-            isDashing = false;
+	    RigidbodyType2D samuraiOriginalType = rb.bodyType;
+	    rb.bodyType = RigidbodyType2D.Kinematic;
+
+	    var cachedEnemyBodies = new List<(Rigidbody2D rb, RigidbodyType2D type)>(latched.Count);
+
+	    for (int i = 0; i < latched.Count; i++)
+	    {
+		    FighterBase opp = latched[i];
+		    if (opp == null) continue;
+
+		    Rigidbody2D oppRb = opp.GetComponent<Rigidbody2D>();
+		    if (oppRb == null) continue;
+
+		    cachedEnemyBodies.Add((oppRb, oppRb.bodyType));
+		    oppRb.bodyType = RigidbodyType2D.Kinematic;
+	    }
+	    
+	    float firstWait = Mathf.Max(0f, Mathf.Min(samuraiTime, enemyTime));
+	    float secondWait = Mathf.Max(0f, Mathf.Max(samuraiTime, enemyTime) - firstWait);
+
+	    if (firstWait > 0f)
+		    yield return new WaitForSeconds(firstWait);
+
+	    if (samuraiTime <= enemyTime)
+	    {
+		    if (samuraiTime > 0f)
+			    rb.bodyType = samuraiOriginalType;
+
+		    if (secondWait > 0f)
+			    yield return new WaitForSeconds(secondWait);
+
+		    for (int i = 0; i < cachedEnemyBodies.Count; i++)
+			    cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
+	    }
+	    else
+	    {
+		    if (enemyTime > 0f)
+		    {
+			    for (int i = 0; i < cachedEnemyBodies.Count; i++)
+				    cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
+		    }
+
+		    if (secondWait > 0f)
+			    yield return new WaitForSeconds(secondWait);
+
+		    rb.bodyType = samuraiOriginalType;
+	    }
     }
     #endregion
 
