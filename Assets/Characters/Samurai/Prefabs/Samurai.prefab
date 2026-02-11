@@ -127,6 +127,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -148,6 +150,7 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 786919711
   m_SortingLayer: 2
   m_SortingOrder: 0
@@ -388,7 +391,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   attackPoint: {fileID: 3741391258390292735}
+  dashDistance: 5
+  dashDuration: 0.3
+  dashDamage: 10
+  stopBehindOpponentOffset: 0.6
+  enemyStackVerticalSpacing: 0.02
+  stunDuration: 0.5
+  latchRadius: 0.5
+  extraSweepPadding: 0.1
   ghostPrefab: {fileID: 5251138399461381211, guid: d3d62b68455a32d4ba84d521253b0b98, type: 3}
+  numberOfGhost: 10
 --- !u!114 &2503597120066714775
 MonoBehaviour:
   m_ObjectHideFlags: 0
