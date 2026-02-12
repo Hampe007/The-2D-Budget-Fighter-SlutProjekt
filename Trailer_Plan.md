@@ -13,7 +13,7 @@
 | 0:22–0:26 | **Wizard lightning** | Show stun | Swap to Wizard (new match). Fire lightning bolt (Space) at idle opponent. | Mid-wide. | Cut on hit. | “Stun Lightning” |
 | 0:26–0:30 | **Samurai dash** | Show dash pierce + afterimage | As Samurai, press Space to dash through opponent. | Side-on wide so trail visible. | Whip-pan style cut. | “Dash Pierce” |
 | 0:30–0:34 | **Warrior crit** | Show powered melee | As Warrior: press Space (crit), then mouse click melee on idle opponent. | Slightly closer on hit. | Impact cut. | “Critical Strikes” |
-| 0:34–0:38 | **Low health flash** | Show UI tension | Let opponent hit you until HP < 30% to see flashing health bar. | HUD-focused crop; character still visible. | Cut. | “Clutch Moments” |
+| 0:34–0:38 | **Low health flash** | Show UI tension | Let opponent hit you until HP < 30% to see flashing health bar. | HUD-focused crop; character still visible. | Cut. | “Finish Him” |
 | 0:38–0:40 | **KO moment** | Close with win/lose | Finish opponent; capture death animation. | Wide. | Hard cut to black. | “Fight.” |
 
 ## Recording checklist
