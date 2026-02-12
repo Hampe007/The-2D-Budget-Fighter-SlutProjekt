@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,24 +6,24 @@ public sealed class Samurai : FighterBase
 {
     #region Dash Pierce Settings
     [Header("Dash Pierce Settings")]
-    [SerializeField] private float dashDistance = 10f;
-    [SerializeField] private float dashDuration = 0.3f;
-    [SerializeField] private int dashDamage = 10;
+    private float dashDistance = 5f;
+    private float dashDuration = 0.3f;
+    private int dashDamage = 10;
 
     [Header("Yone-style end placement")]
-    [SerializeField] private float stopBehindOpponentOffset = 0.6f;
-    [SerializeField] private float enemyStackVerticalSpacing = 0.02f;
+    private float stopBehindOpponentOffset = 0.8f;
+    private float enemyStackVerticalSpacing = 0.02f;
 
     [Header("Hit / status")]
-    [SerializeField] private float stunDuration = 0.5f;
+    private float stunDuration = 0.5f;
 
     [Header("Detection")]
-    [SerializeField] private float latchRadius = 0.5f;
-    [SerializeField] private float extraSweepPadding = 0.1f;
+    private float latchRadius = 0.5f;
+    private float extraSweepPadding = 0.1f;
     
     [Header("End locks (enemy stays locked longer)")]
-    [SerializeField] private float samuraiEndLockTime = 0.06f;
-    [SerializeField] private float enemyEndLockTime = 0.18f;
+    private float samuraiEndLockTime = 0.06f;
+    private float enemyEndLockTime = 0.18f;
 
     private float lastDashTime;
     private bool isDashing;
@@ -225,8 +224,8 @@ public sealed class Samurai : FighterBase
         }
 
         if (samuraiEndLockTime > 0f || enemyEndLockTime > 0f)
-	        StartCoroutine(EndLockCoroutine(latched, samuraiEndLockTime, enemyEndLockTime));
-        
+	        yield return EndLockCoroutine(latched, samuraiEndLockTime, enemyEndLockTime, dashEnd, dashDirection, minX, maxX, minY);
+
         gameObject.layer = originalLayer;
         rb.gravityScale = originalGravity;
 
@@ -268,59 +267,99 @@ public sealed class Samurai : FighterBase
         }
     }
     
-    private IEnumerator EndLockCoroutine(List<FighterBase> latched, float samuraiTime, float enemyTime)
-    {
+    private IEnumerator EndLockCoroutine(
+    List<FighterBase> latched,
+    float samuraiTime,
+    float enemyTime,
+    Vector2 dashEnd,
+    Vector2 dashDirection,
+    float minX,
+    float maxX,
+    float minY)
+	{
 	    if (rb == null)
-		    yield break;
+	        yield break;
 
 	    RigidbodyType2D samuraiOriginalType = rb.bodyType;
 	    rb.bodyType = RigidbodyType2D.Kinematic;
 
-	    var cachedEnemyBodies = new List<(Rigidbody2D rb, RigidbodyType2D type)>(latched.Count);
+	    var cachedEnemyBodies = new List<(Rigidbody2D rb, RigidbodyType2D type, FighterBase fighter)>(latched.Count);
 
 	    for (int i = 0; i < latched.Count; i++)
 	    {
-		    FighterBase opp = latched[i];
-		    if (opp == null) continue;
+	        FighterBase opp = latched[i];
+	        if (opp == null) continue;
 
-		    Rigidbody2D oppRb = opp.GetComponent<Rigidbody2D>();
-		    if (oppRb == null) continue;
+	        Rigidbody2D oppRb = opp.GetComponent<Rigidbody2D>();
+	        if (oppRb == null) continue;
 
-		    cachedEnemyBodies.Add((oppRb, oppRb.bodyType));
-		    oppRb.bodyType = RigidbodyType2D.Kinematic;
+	        cachedEnemyBodies.Add((oppRb, oppRb.bodyType, opp));
+	        oppRb.bodyType = RigidbodyType2D.Kinematic;
 	    }
-	    
+
 	    float firstWait = Mathf.Max(0f, Mathf.Min(samuraiTime, enemyTime));
 	    float secondWait = Mathf.Max(0f, Mathf.Max(samuraiTime, enemyTime) - firstWait);
 
 	    if (firstWait > 0f)
-		    yield return new WaitForSeconds(firstWait);
+	        yield return new WaitForSeconds(firstWait);
 
 	    if (samuraiTime <= enemyTime)
 	    {
-		    if (samuraiTime > 0f)
-			    rb.bodyType = samuraiOriginalType;
+	        if (samuraiTime > 0f)
+	        {
+	            rb.bodyType = samuraiOriginalType;
+	            HardStopBody(rb);
+	        }
 
-		    if (secondWait > 0f)
-			    yield return new WaitForSeconds(secondWait);
+	        if (secondWait > 0f)
+	            yield return new WaitForSeconds(secondWait);
 
-		    for (int i = 0; i < cachedEnemyBodies.Count; i++)
-			    cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
+	        for (int i = 0; i < cachedEnemyBodies.Count; i++)
+	        {
+	            cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
+	            HardStopBody(cachedEnemyBodies[i].rb);
+	        }
 	    }
 	    else
 	    {
-		    if (enemyTime > 0f)
-		    {
-			    for (int i = 0; i < cachedEnemyBodies.Count; i++)
-				    cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
-		    }
+	        if (enemyTime > 0f)
+	        {
+	            for (int i = 0; i < cachedEnemyBodies.Count; i++)
+	            {
+	                cachedEnemyBodies[i].rb.bodyType = cachedEnemyBodies[i].type;
+	                HardStopBody(cachedEnemyBodies[i].rb);
+	            }
+	        }
 
-		    if (secondWait > 0f)
-			    yield return new WaitForSeconds(secondWait);
+	        if (secondWait > 0f)
+	            yield return new WaitForSeconds(secondWait);
 
-		    rb.bodyType = samuraiOriginalType;
+	        rb.bodyType = samuraiOriginalType;
+	        HardStopBody(rb);
 	    }
-    }
+
+	    // Final snap AFTER unlock so nobody is overlapping when collisions become solid again.
+	    SnapToEndPositions(dashEnd, dashDirection, latched, minX, maxX, minY);
+
+	    HardStopBody(rb);
+
+	    for (int i = 0; i < latched.Count; i++)
+	    {
+	        if (latched[i] == null) continue;
+
+	        Rigidbody2D oppRb = latched[i].GetComponent<Rigidbody2D>();
+	        if (oppRb == null) continue;
+
+	        HardStopBody(oppRb);
+	    }
+	}
+
+	private static void HardStopBody(Rigidbody2D body)
+	{
+	    body.linearVelocity = Vector2.zero;
+	    body.angularVelocity = 0f;
+	    body.Sleep();
+	}
     #endregion
 
     #region Attacks

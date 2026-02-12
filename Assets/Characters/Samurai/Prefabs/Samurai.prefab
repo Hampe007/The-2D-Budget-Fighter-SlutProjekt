@@ -394,11 +394,13 @@ MonoBehaviour:
   dashDistance: 5
   dashDuration: 0.3
   dashDamage: 10
-  stopBehindOpponentOffset: 0.6
+  stopBehindOpponentOffset: 0.8
   enemyStackVerticalSpacing: 0.02
   stunDuration: 0.5
   latchRadius: 0.5
   extraSweepPadding: 0.1
+  samuraiEndLockTime: 0.06
+  enemyEndLockTime: 0.18
   ghostPrefab: {fileID: 5251138399461381211, guid: d3d62b68455a32d4ba84d521253b0b98, type: 3}
   numberOfGhost: 10
 --- !u!114 &2503597120066714775
